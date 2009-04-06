@@ -1,0 +1,14 @@
+Makefile
+Makefile.in
+stamp-h1
+test
+*.lo
+*.la
+libs
+.deps
+.libs
+_libs
+*.gcda
+*.gcno
+test
+ex

@@ -1,0 +1,2 @@
+libpssh handles multiple SSH connections using libevent and libssh2.
+Author: Dmitry Novikov <rushba at eyelinkmedia dot com>
