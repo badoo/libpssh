@@ -217,7 +217,7 @@ static int pssh_task_get_send_channel(struct pssh_task_t *task)
                                      0x1FF & cp->st.st_mode, cp->st.st_size);
     if (task->channel == NULL) {
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
-            pssh_printf("%s: lasrt_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
+            pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
             task->stat = PSSH_TASK_STAT_ERROR;
             ret = 0;
         } else {
@@ -239,7 +239,7 @@ static int pssh_task_get_recv_channel(struct pssh_task_t *task)
     task->channel = libssh2_scp_recv(task->sess_entry->ssh_sess, cp->r_fn, &cp->st);
     if (task->channel == NULL) {
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
-            pssh_printf("%s: lasrt_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
+            pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
             task->stat = PSSH_TASK_STAT_ERROR;
         } else {
             ret = PSSH_EAGAIN;
@@ -274,7 +274,7 @@ static int pssh_task_send_data(struct pssh_task_t *task)
     pssh_printf("%s: %s: write %d\n", __func__, cp->l_fn, ret);
     if (ret < 0) {
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
-            pssh_printf("%s: lasrt_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
+            pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
             task->stat = PSSH_TASK_STAT_ERROR;
             ret = 0;
         } else {
@@ -409,7 +409,7 @@ static int pssh_task_get_exec_channel(struct pssh_task_t *task)
     task->channel = libssh2_channel_open_session(task->sess_entry->ssh_sess);
     if (task->channel == NULL) {
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
-            pssh_printf("%s: lasrt_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
+            pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
             task->stat = PSSH_TASK_STAT_ERROR;
         } else {
             ret = PSSH_EAGAIN;
@@ -428,7 +428,7 @@ static int pssh_task_do_cmd(struct pssh_task_t *task)
     ret = libssh2_channel_exec(task->channel, ex->cmd);
     if (ret < 0) {
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
-            pssh_printf("%s: lasrt_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
+            pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
             task->stat = PSSH_TASK_STAT_ERROR;
             ret = 0;
         } else {
@@ -453,7 +453,7 @@ static int pssh_task_read_stream(struct pssh_task_t *task, pssh_exec_stream_t *s
     ret = libssh2_channel_read_ex(task->channel, stream_id, s->data + s->len, s->alloc - s->len);
     if (ret < 0) {
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
-            pssh_printf("%s: lasrt_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
+            pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
             pssh_printf("ret %d\n", ret);
             task->stat = PSSH_TASK_STAT_ERROR;
         }
@@ -477,7 +477,7 @@ static int pssh_task_read_stdout(struct pssh_task_t *task)
     switch(ret) {
     case -1:
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
-            pssh_printf("%s: lasrt_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
+            pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
             task->stat = PSSH_TASK_STAT_ERROR;
             ret = 0;
         } else {
@@ -497,7 +497,7 @@ static int pssh_task_read_stderr(struct pssh_task_t *task)
     switch(ret) {
     case -1:
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
-            pssh_printf("%s: lasrt_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
+            pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
             task->stat = PSSH_TASK_STAT_ERROR;
             ret = 0;
         } else {
