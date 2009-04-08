@@ -56,7 +56,7 @@
 
 static void pssh_task_event_handler(int fd, short type, void *arg);
 
-static struct pssh_sess_entry *pssh_find_ent(pssh_session_t *sess, const char *srv)
+static struct pssh_sess_entry *pssh_find_ent(pssh_session_t *sess, const char *srv) /* {{{ */
 {
     struct pssh_sess_entry *ent;
     TAILQ_FOREACH(ent, sess->sessions, entries) {
@@ -65,8 +65,9 @@ static struct pssh_sess_entry *pssh_find_ent(pssh_session_t *sess, const char *s
     }
     return NULL;
 }
+/* }}} */
 
-pssh_task_list_t *pssh_task_list_init(pssh_session_t *sess)
+pssh_task_list_t *pssh_task_list_init(pssh_session_t *sess) /* {{{ */
 {
     struct pssh_task_list_t *tl = xmalloc(sizeof(struct pssh_task_list_t));
     tl->sess = sess;
@@ -75,8 +76,9 @@ pssh_task_list_t *pssh_task_list_init(pssh_session_t *sess)
 
     return tl;
 }
+/* }}} */
 
-static int pssh_task_event_update(struct pssh_task_t *t, int flags, int timeout)
+static int pssh_task_event_update(struct pssh_task_t *t, int flags, int timeout) /* {{{ */
 {
     struct timeval tv;
 
@@ -89,8 +91,9 @@ static int pssh_task_event_update(struct pssh_task_t *t, int flags, int timeout)
     }
     return 0;
 }
+/* }}} */
 
-static int pssh_task_eagain_handle(struct pssh_task_t *t, int timeout)
+static int pssh_task_eagain_handle(struct pssh_task_t *t, int timeout) /* {{{ */
 {
     int flag;
     if (libssh2_session_last_io(t->sess_entry->ssh_sess) == LIBSSH2_LAST_IO_SEND) {
@@ -100,9 +103,10 @@ static int pssh_task_eagain_handle(struct pssh_task_t *t, int timeout)
     }
     return pssh_task_event_update(t, flag, timeout);
 }
+/* }}} */
 
 /* Initialize common fields for cp & exec task. */
-static struct pssh_task_t *pssh_init_common_task(pssh_session_t *sess, const char *srv, pssh_task_type_t type)
+static struct pssh_task_t *pssh_init_common_task(pssh_session_t *sess, const char *srv, pssh_task_type_t type) /* {{{ */
 {
     struct pssh_task_t *t = xmalloc(sizeof(struct pssh_task_t));
 
@@ -116,16 +120,17 @@ static struct pssh_task_t *pssh_init_common_task(pssh_session_t *sess, const cha
     t->channel = NULL;
     return t;
 }
+/* }}} */
 
-static int check_zero_str(const char *s)
+static int check_zero_str(const char *s) /* {{{ */
 {
     if ((s == NULL) || (strlen(s) == 0))
         return -1;
     return 0;
 }
+/* }}} */
 
-static int pssh_add_cp_task(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn,
-                            pssh_copy_direction_t dir)
+static int pssh_add_cp_task(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn, pssh_copy_direction_t dir) /* {{{ */
 {
     struct pssh_task_t *t;
 
@@ -146,18 +151,21 @@ static int pssh_add_cp_task(pssh_task_list_t *tl, const char *srv, const char *l
     TAILQ_INSERT_TAIL(tl->tasks, t, entries);
     return 0;
 }
+/* }}} */
 
-int pssh_cp_to_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn)
+int pssh_cp_to_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn) /* {{{ */
 {
     return pssh_add_cp_task(tl, srv, l_fn, r_fn, PSSH_CD_TO_SERV);
 }
+/* }}} */
 
-int pssh_cp_from_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn)
+int pssh_cp_from_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn) /* {{{ */
 {
     return pssh_add_cp_task(tl, srv, l_fn, r_fn, PSSH_CD_FROM_SERV);
 }
+/* }}} */
 
-int pssh_add_cmd(pssh_task_list_t *tl, const char *srv, const char *cmd)
+int pssh_add_cmd(pssh_task_list_t *tl, const char *srv, const char *cmd) /* {{{ */
 {
     struct pssh_task_t *t;
 
@@ -173,11 +181,12 @@ int pssh_add_cmd(pssh_task_list_t *tl, const char *srv, const char *cmd)
     TAILQ_INSERT_TAIL(tl->tasks, t, entries);
     return 0;
 }
+/* }}} */
 
 /*
  * copy to remote server
  */
-static int pssh_task_get_send_channel(struct pssh_task_t *task)
+static int pssh_task_get_send_channel(struct pssh_task_t *task) /* {{{ */
 {
     int ret;
     int fd;
@@ -230,8 +239,9 @@ static int pssh_task_get_send_channel(struct pssh_task_t *task)
 
     return ret;
 }
+/* }}} */
 
-static int pssh_task_get_recv_channel(struct pssh_task_t *task)
+static int pssh_task_get_recv_channel(struct pssh_task_t *task) /* {{{ */
 {
     int ret = 0;
     pssh_copy_task_t *cp = &task->task.cp;
@@ -249,8 +259,9 @@ static int pssh_task_get_recv_channel(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_get_scp_channel(struct pssh_task_t *task)
+static int pssh_task_get_scp_channel(struct pssh_task_t *task) /* {{{ */
 {
     int ret;
     if (task->task.cp.dir == PSSH_CD_TO_SERV) {
@@ -260,8 +271,9 @@ static int pssh_task_get_scp_channel(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_send_data(struct pssh_task_t *task)
+static int pssh_task_send_data(struct pssh_task_t *task) /* {{{ */
 {
     int ret;
     pssh_copy_task_t *cp = &task->task.cp;
@@ -292,8 +304,9 @@ static int pssh_task_send_data(struct pssh_task_t *task)
     return 0;
     /* return ret; */
 }
+/* }}} */
 
-static int pssh_task_recv_data(struct pssh_task_t *task)
+static int pssh_task_recv_data(struct pssh_task_t *task) /* {{{ */
 {
     int ret;
     pssh_copy_task_t *cp = &task->task.cp;
@@ -330,8 +343,9 @@ static int pssh_task_recv_data(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_transfer_data(struct pssh_task_t *task)
+static int pssh_task_transfer_data(struct pssh_task_t *task) /* {{{ */
 {
     int ret;
     if (task->task.cp.dir == PSSH_CD_TO_SERV) {
@@ -341,8 +355,9 @@ static int pssh_task_transfer_data(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_cleanup_copy(struct pssh_task_t *task)
+static int pssh_task_cleanup_copy(struct pssh_task_t *task) /* {{{ */
 {
     pssh_copy_task_t *cp = &task->task.cp;
 
@@ -361,8 +376,9 @@ static int pssh_task_cleanup_copy(struct pssh_task_t *task)
     task->stat = PSSH_TASK_STAT_DONE;
     return 0;
 }
+/* }}} */
 
-static int pssh_task_run_copy_task(struct pssh_task_t *task)
+static int pssh_task_run_copy_task(struct pssh_task_t *task) /* {{{ */
 {
     int ret = -1;
     switch (task->stat) {
@@ -398,12 +414,13 @@ static int pssh_task_run_copy_task(struct pssh_task_t *task)
 
     return ret;
 }
+/* }}} */
 
 /*
  * cmds on remote servers routines.
  */
 
-static int pssh_task_get_exec_channel(struct pssh_task_t *task)
+static int pssh_task_get_exec_channel(struct pssh_task_t *task) /* {{{ */
 {
     int ret = 0;
     task->channel = libssh2_channel_open_session(task->sess_entry->ssh_sess);
@@ -419,8 +436,9 @@ static int pssh_task_get_exec_channel(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_do_cmd(struct pssh_task_t *task)
+static int pssh_task_do_cmd(struct pssh_task_t *task) /* {{{ */
 {
     int ret = 0;
     pssh_exec_task_t *ex = &task->task.ex;
@@ -440,8 +458,9 @@ static int pssh_task_do_cmd(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_read_stream(struct pssh_task_t *task, pssh_exec_stream_t *s, int stream_id)
+static int pssh_task_read_stream(struct pssh_task_t *task, pssh_exec_stream_t *s, int stream_id) /* {{{ */
 {
     int ret;
     if (s->data == NULL) {
@@ -469,8 +488,9 @@ static int pssh_task_read_stream(struct pssh_task_t *task, pssh_exec_stream_t *s
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_read_stdout(struct pssh_task_t *task)
+static int pssh_task_read_stdout(struct pssh_task_t *task) /* {{{ */
 {
     pssh_exec_task_t *ex = &task->task.ex;
     int ret = pssh_task_read_stream(task, &ex->out_stream, 0);
@@ -489,8 +509,9 @@ static int pssh_task_read_stdout(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_read_stderr(struct pssh_task_t *task)
+static int pssh_task_read_stderr(struct pssh_task_t *task) /* {{{ */
 {
     pssh_exec_task_t *ex = &task->task.ex;
     int ret = pssh_task_read_stream(task, &ex->err_stream, SSH_EXTENDED_DATA_STDERR);
@@ -510,8 +531,9 @@ static int pssh_task_read_stderr(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static int pssh_task_cleanup_exec(struct pssh_task_t *task)
+static int pssh_task_cleanup_exec(struct pssh_task_t *task) /* {{{ */
 {
 /*     pssh_exec_task_t *ex = &task->task.ex; */
 
@@ -526,8 +548,9 @@ static int pssh_task_cleanup_exec(struct pssh_task_t *task)
     task->stat = PSSH_TASK_STAT_DONE;
     return 0;
 }
+/* }}} */
 
-static int pssh_task_run_exec_task(struct pssh_task_t *task)
+static int pssh_task_run_exec_task(struct pssh_task_t *task) /* {{{ */
 {
     int ret = -1;
     switch (task->stat) {
@@ -594,8 +617,9 @@ static int pssh_task_run_exec_task(struct pssh_task_t *task)
     }
     return ret;
 }
+/* }}} */
 
-static void pssh_task_fsm(struct pssh_task_t *t)
+static void pssh_task_fsm(struct pssh_task_t *t) /* {{{ */
 {
     int ret = -1;
     int timeout = 100;
@@ -640,8 +664,9 @@ static void pssh_task_fsm(struct pssh_task_t *t)
     }
 
 }
+/* }}} */
 
-static void pssh_task_event_handler(int fd, short type, void *arg)
+static void pssh_task_event_handler(int fd, short type, void *arg) /* {{{ */
 {
     struct pssh_task_t *t = (struct pssh_task_t *)arg;
     assert(t != NULL);
@@ -653,8 +678,9 @@ static void pssh_task_event_handler(int fd, short type, void *arg)
     (void) fd;
     return;
 }
+/* }}} */
 
-int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t, int timeout)
+int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t, int timeout) /* {{{ */
 {
     int ret;
     struct pssh_task_t *task;
@@ -717,8 +743,9 @@ int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t, int timeout)
 
     return ret;
 }
+/* }}} */
 
-struct pssh_task_t *pssh_task_first(pssh_task_list_t *tl)
+struct pssh_task_t *pssh_task_first(pssh_task_list_t *tl) /* {{{ */
 {
     if (!tl)
         return NULL;
@@ -727,8 +754,9 @@ struct pssh_task_t *pssh_task_first(pssh_task_list_t *tl)
         return tl->curr_task;
     }
 }
+/* }}} */
 
-struct pssh_task_t *pssh_task_next(pssh_task_list_t *tl)
+struct pssh_task_t *pssh_task_next(pssh_task_list_t *tl) /* {{{ */
 {
     if (!tl)
         return NULL;
@@ -737,17 +765,19 @@ struct pssh_task_t *pssh_task_next(pssh_task_list_t *tl)
         return tl->curr_task;
     }
 }
+/* }}} */
 
 /* Interface for private members of pssh_task_t structure */
-inline char *pssh_task_server_name(struct pssh_task_t *task)
+inline char *pssh_task_server_name(struct pssh_task_t *task) /* {{{ */
 {
     if (task)
         return task->hostname;
     else
         return NULL;
 }
+/* }}} */
 
-inline pssh_task_stat_t pssh_task_stat(struct pssh_task_t *task)
+inline pssh_task_stat_t pssh_task_stat(struct pssh_task_t *task) /* {{{ */
 {
     pssh_task_stat_t st;
 
@@ -767,16 +797,18 @@ inline pssh_task_stat_t pssh_task_stat(struct pssh_task_t *task)
     }
     return st;
 }
+/* }}} */
 
-inline static int pssh_is_cmd_task(struct pssh_task_t *task)
+inline static int pssh_is_cmd_task(struct pssh_task_t *task) /* {{{ */
 {
     if (task && (task->type == PSSH_TASK_TYPE_EXEC))
         return 1;
     else
         return 0;
 }
+/* }}} */
 
-inline char *pssh_task_get_cmd(struct pssh_task_t *task)
+inline char *pssh_task_get_cmd(struct pssh_task_t *task) /* {{{ */
 {
     if (task) {
         if (pssh_is_cmd_task(task)) {
@@ -787,52 +819,60 @@ inline char *pssh_task_get_cmd(struct pssh_task_t *task)
     }
     return NULL;
 }
+/* }}} */
 
-inline int pssh_task_stdout_len(struct pssh_task_t *task)
+inline int pssh_task_stdout_len(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.out_stream.len;
     return -1;
 }
+/* }}} */
 
-inline char *pssh_task_stdout(struct pssh_task_t *task)
+inline char *pssh_task_stdout(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.out_stream.data;
     pssh_printf("%s: return NULL\n", __func__);
     return NULL;
 }
+/* }}} */
 
-inline int pssh_task_stderr_len(struct pssh_task_t *task)
+inline int pssh_task_stderr_len(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.err_stream.len;
     return -1;
 }
+/* }}} */
 
-inline char *pssh_task_stderr(struct pssh_task_t *task)
+inline char *pssh_task_stderr(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.err_stream.data;
     return NULL;
 }
+/* }}} */
 
-inline int pssh_task_exit_status(struct pssh_task_t *task)
+inline int pssh_task_exit_status(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.ret_code;
     return -1;
 }
+/* }}} */
 
-inline pssh_task_type_t  pssh_task_type(struct pssh_task_t *task)
+inline pssh_task_type_t pssh_task_type(struct pssh_task_t *task) /* {{{ */
 {
     return task->type;
 }
+/* }}} */
 
 /*
  * Cleanup
  */
-void pssh_task_list_free(pssh_task_list_t *tl)
+
+void pssh_task_list_free(pssh_task_list_t *tl) /* {{{ */
 {
     if (tl) {
         while (tl->tasks->tqh_first != NULL) {
@@ -845,3 +885,4 @@ void pssh_task_list_free(pssh_task_list_t *tl)
         free(tl);
     }
 }
+/* }}} */

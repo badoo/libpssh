@@ -65,13 +65,14 @@ static int pssh_event_update(struct pssh_sess_entry *ent, int flags, int timeout
 
 static void pssh_fsm(struct pssh_sess_entry *ent);
 
-/* static void */
-/* logfn(int is_warn, const char *msg) { */
-/*   (void) is_warn; */
-/*   fprintf(stderr, "%s\n", msg); */
-/* } */
+#if 0
+static void logfn(int is_warn, const char *msg) { 
+	(void) is_warn;
+	fprintf(stderr, "%s\n", msg);
+}
+#endif
 
-static void pssh_dns_cb(int result, char type, int count, int ttl, void *addr, void *arg)
+static void pssh_dns_cb(int result, char type, int count, int ttl, void *addr, void *arg) /* {{{ */
 {
     struct pssh_sess_entry *ent = (struct pssh_sess_entry *)arg;
     int *iaddr = (int *)addr;
@@ -95,8 +96,9 @@ static void pssh_dns_cb(int result, char type, int count, int ttl, void *addr, v
     (void) count;
     (void) ttl;
 }
+/* }}} */
 
-static int pssh_event_update(struct pssh_sess_entry *ent, int flags, int timeout)
+static int pssh_event_update(struct pssh_sess_entry *ent, int flags, int timeout) /* {{{ */
 {
     struct timeval tv;
     int ret;
@@ -109,8 +111,9 @@ static int pssh_event_update(struct pssh_sess_entry *ent, int flags, int timeout
         ent->ev_up = 1;
     return ret;
 }
+/* }}} */
 
-static int pssh_eagain_handle(struct pssh_sess_entry *ent, int timeout)
+static int pssh_eagain_handle(struct pssh_sess_entry *ent, int timeout) /* {{{ */
 {
     int flag;
     if (libssh2_session_last_io(ent->ssh_sess) == LIBSSH2_LAST_IO_SEND) {
@@ -120,8 +123,9 @@ static int pssh_eagain_handle(struct pssh_sess_entry *ent, int timeout)
     }
     return pssh_event_update(ent, flag, timeout);
 }
+/* }}} */
 
-static void pssh_conn(struct pssh_sess_entry *ent, int timeout)
+static void pssh_conn(struct pssh_sess_entry *ent, int timeout) /* {{{ */
 {
     struct sockaddr_in sin;
     int ret;
@@ -159,8 +163,9 @@ static void pssh_conn(struct pssh_sess_entry *ent, int timeout)
         }
     }
 }
+/* }}} */
 
-pssh_session_t *pssh_init(const char *username, const char *public_key_path, const char *priv_key_path, const char *password, int opts)
+pssh_session_t *pssh_init(const char *username, const char *public_key_path, const char *priv_key_path, const char *password, int opts) /* {{{ */
 {
     struct pssh_session_t *session;
     int ret;
@@ -207,8 +212,9 @@ pssh_session_t *pssh_init(const char *username, const char *public_key_path, con
 
     return session;
 }
+/* }}} */
 
-int pssh_server_add(pssh_session_t *sess, const char *serv_name, int port)
+int pssh_server_add(pssh_session_t *sess, const char *serv_name, int port) /* {{{ */
 {
     struct pssh_sess_entry *entry;
 
@@ -237,8 +243,9 @@ int pssh_server_add(pssh_session_t *sess, const char *serv_name, int port)
     TAILQ_INSERT_TAIL(sess->sessions, entry, entries);
     return 0;
 }
+/* }}} */
 
-static void pssh_fsm(struct pssh_sess_entry *ent)
+static void pssh_fsm(struct pssh_sess_entry *ent) /* {{{ */
 {
     int timeout;
     int conn_ret;
@@ -319,8 +326,9 @@ static void pssh_fsm(struct pssh_sess_entry *ent)
     }
     return;
 }
+/* }}} */
 
-static void pssh_event_handler(int fd, short type, void *arg)
+static void pssh_event_handler(int fd, short type, void *arg) /* {{{ */
 {
     time_t is_time;
     struct pssh_sess_entry *ent = (struct pssh_sess_entry *)arg;
@@ -349,8 +357,9 @@ static void pssh_event_handler(int fd, short type, void *arg)
     (void) fd;
     return;
 }
+/* }}} */
 
-static void pssh_shutdown_events(pssh_session_t *sess)
+static void pssh_shutdown_events(pssh_session_t *sess) /* {{{ */
 {
     int ret;
     struct pssh_sess_entry *entry;
@@ -362,8 +371,9 @@ static void pssh_shutdown_events(pssh_session_t *sess)
 /*         pssh_printf("%s: ret %d\n", __func__, ret); */
     }
 }
+/* }}} */
 
-int pssh_connect(pssh_session_t *sess, struct pssh_sess_entry **e, int timeout)
+int pssh_connect(pssh_session_t *sess, struct pssh_sess_entry **e, int timeout) /* {{{ */
 {
     int ret;
     int need_return = 0;
@@ -437,14 +447,16 @@ int pssh_connect(pssh_session_t *sess, struct pssh_sess_entry **e, int timeout)
     }
     return ret;
 }
+/* }}} */
 
-struct pssh_sess_entry *pssh_server_first(pssh_session_t *sess)
+struct pssh_sess_entry *pssh_server_first(pssh_session_t *sess) /* {{{ */
 {
     sess->pssh_curr_server = TAILQ_FIRST(sess->sessions);
     return sess->pssh_curr_server;
 }
+/* }}} */
 
-struct pssh_sess_entry *pssh_server_next(pssh_session_t *sess)
+struct pssh_sess_entry *pssh_server_next(pssh_session_t *sess) /* {{{ */
 {
     if (sess && sess->pssh_curr_server) {
         sess->pssh_curr_server = TAILQ_NEXT(sess->pssh_curr_server, entries);
@@ -452,15 +464,17 @@ struct pssh_sess_entry *pssh_server_next(pssh_session_t *sess)
     }
     return NULL;
 }
+/* }}} */
 
-char *pssh_serv_name(struct pssh_sess_entry *ent)
+char *pssh_serv_name(struct pssh_sess_entry *ent) /* {{{ */
 {
     if (ent != NULL)
         return ent->hostaddr_str;
     return NULL;
 }
+/* }}} */
 
-pssh_stat_t pssh_stat(struct pssh_sess_entry *ent)
+pssh_stat_t pssh_stat(struct pssh_sess_entry *ent) /* {{{ */
 {
     pssh_stat_t st;
     switch(ent->stat) {
@@ -479,13 +493,15 @@ pssh_stat_t pssh_stat(struct pssh_sess_entry *ent)
     }
     return st;
 }
+/* }}} */
 
-int pssh_serv_port(struct  pssh_sess_entry *ent)
+int pssh_serv_port(struct  pssh_sess_entry *ent) /* {{{ */
 {
     return ent->port;
 }
+/* }}} */
 
-const char *pssh_stat_str(struct pssh_sess_entry *ent)
+const char *pssh_stat_str(struct pssh_sess_entry *ent) /* {{{ */
 {
     static const char *stat_str[] = {
     "PSSH_STAT_ERROR",
@@ -501,8 +517,9 @@ const char *pssh_stat_str(struct pssh_sess_entry *ent)
 
     return stat_str[ent->stat];
 }
+/* }}} */
 
-void pssh_free(pssh_session_t *s)
+void pssh_free(pssh_session_t *s) /* {{{ */
 {
     struct pssh_sess_entry *entry;
     while (s->sessions->tqh_first != NULL) {
@@ -526,3 +543,4 @@ void pssh_free(pssh_session_t *s)
     event_base_free(s->ev_base);
     free(s);
 }
+/* }}} */
