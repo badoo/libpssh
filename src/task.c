@@ -768,7 +768,7 @@ struct pssh_task_t *pssh_task_next(pssh_task_list_t *tl) /* {{{ */
 /* }}} */
 
 /* Interface for private members of pssh_task_t structure */
-inline char *pssh_task_server_name(struct pssh_task_t *task) /* {{{ */
+char *pssh_task_server_name(struct pssh_task_t *task) /* {{{ */
 {
     if (task)
         return task->hostname;
@@ -777,7 +777,7 @@ inline char *pssh_task_server_name(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline pssh_task_stat_t pssh_task_stat(struct pssh_task_t *task) /* {{{ */
+pssh_task_stat_t pssh_task_stat(struct pssh_task_t *task) /* {{{ */
 {
     pssh_task_stat_t st;
 
@@ -799,7 +799,7 @@ inline pssh_task_stat_t pssh_task_stat(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline static int pssh_is_cmd_task(struct pssh_task_t *task) /* {{{ */
+static int pssh_is_cmd_task(struct pssh_task_t *task) /* {{{ */
 {
     if (task && (task->type == PSSH_TASK_TYPE_EXEC))
         return 1;
@@ -808,7 +808,7 @@ inline static int pssh_is_cmd_task(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline char *pssh_task_get_cmd(struct pssh_task_t *task) /* {{{ */
+char *pssh_task_get_cmd(struct pssh_task_t *task) /* {{{ */
 {
     if (task) {
         if (pssh_is_cmd_task(task)) {
@@ -821,7 +821,7 @@ inline char *pssh_task_get_cmd(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline int pssh_task_stdout_len(struct pssh_task_t *task) /* {{{ */
+int pssh_task_stdout_len(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.out_stream.len;
@@ -829,7 +829,7 @@ inline int pssh_task_stdout_len(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline char *pssh_task_stdout(struct pssh_task_t *task) /* {{{ */
+char *pssh_task_stdout(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.out_stream.data;
@@ -838,7 +838,7 @@ inline char *pssh_task_stdout(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline int pssh_task_stderr_len(struct pssh_task_t *task) /* {{{ */
+int pssh_task_stderr_len(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.err_stream.len;
@@ -846,7 +846,7 @@ inline int pssh_task_stderr_len(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline char *pssh_task_stderr(struct pssh_task_t *task) /* {{{ */
+char *pssh_task_stderr(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.err_stream.data;
@@ -854,7 +854,7 @@ inline char *pssh_task_stderr(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline int pssh_task_exit_status(struct pssh_task_t *task) /* {{{ */
+int pssh_task_exit_status(struct pssh_task_t *task) /* {{{ */
 {
     if (pssh_is_cmd_task(task))
         return task->task.ex.ret_code;
@@ -862,7 +862,7 @@ inline int pssh_task_exit_status(struct pssh_task_t *task) /* {{{ */
 }
 /* }}} */
 
-inline pssh_task_type_t pssh_task_type(struct pssh_task_t *task) /* {{{ */
+pssh_task_type_t pssh_task_type(struct pssh_task_t *task) /* {{{ */
 {
     return task->type;
 }
