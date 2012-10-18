@@ -104,6 +104,7 @@ struct pssh_session_t {
     struct pssh_sessions_t *sessions;
     struct pssh_sess_entry *pssh_curr_server;
     struct event_base      *ev_base;
+    struct evdns_base      *evdns_base;
     int                     opts;
 };
 

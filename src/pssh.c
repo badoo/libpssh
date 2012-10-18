@@ -106,6 +106,7 @@ static int pssh_event_update(struct pssh_sess_entry *ent, int flags, int timeout
     tv.tv_sec = timeout;
     tv.tv_usec = 0;
     event_set(ent->ev, ent->sock, flags, pssh_event_handler, (void*)ent);
+    event_base_set(ent->self_sess->ev_base, ent->ev);
     ret = event_add(ent->ev, &tv);
     if (ret == 0)
         ent->ev_up = 1;
@@ -195,16 +196,16 @@ pssh_session_t *pssh_init(const char *username, const char *public_key_path, con
     else
         session->priv_key = NULL;
             
-    session->ev_base = event_init();
-    /* evdns_init(); */
+    session->ev_base = event_base_new();
+    session->evdns_base = evdns_base_new(session->ev_base, 0);
 
     if (session->opts & PSSH_OPT_NO_SEARCH)
-        ret = evdns_resolv_conf_parse(DNS_OPTION_NAMESERVERS | DNS_OPTION_MISC, "/etc/resolv.conf");
+        ret = evdns_base_resolv_conf_parse(session->evdns_base, DNS_OPTION_NAMESERVERS | DNS_OPTION_MISC, "/etc/resolv.conf");
     else 
-        ret = evdns_resolv_conf_parse(DNS_OPTIONS_ALL, "/etc/resolv.conf");
+        ret = evdns_base_resolv_conf_parse(session->evdns_base, DNS_OPTIONS_ALL, "/etc/resolv.conf");
 
     if (ret != 0) {
-        pssh_printf("%s: evdns_resolv_conf_parse ret %d\n", __func__, ret);
+        pssh_printf("%s: evdns_base_resolv_conf_parse ret %d\n", __func__, ret);
         return NULL;
     }
     /* evdns_set_log_fn(logfn); */
@@ -236,9 +237,9 @@ int pssh_server_add(pssh_session_t *sess, const char *serv_name, int port) /* {{
     libssh2_session_set_blocking(entry->ssh_sess, 0);
 
     if (sess->opts & PSSH_OPT_NO_SEARCH)
-        evdns_resolve_ipv4(entry->hostaddr_str, DNS_QUERY_NO_SEARCH, pssh_dns_cb, entry);
+        evdns_base_resolve_ipv4(sess->evdns_base, entry->hostaddr_str, DNS_QUERY_NO_SEARCH, pssh_dns_cb, entry);
     else
-        evdns_resolve_ipv4(entry->hostaddr_str, 0, pssh_dns_cb, entry);
+        evdns_base_resolve_ipv4(sess->evdns_base, entry->hostaddr_str, 0, pssh_dns_cb, entry);
 
     TAILQ_INSERT_TAIL(sess->sessions, entry, entries);
     return 0;
@@ -395,7 +396,6 @@ int pssh_connect(pssh_session_t *sess, struct pssh_sess_entry **e, int timeout) 
                 ret = PSSH_TIMEOUT;
                 *e = NULL;
                 pssh_shutdown_events(sess);
-                evdns_shutdown(0);
                 need_return = 1;
                 break;
             }
@@ -433,7 +433,6 @@ int pssh_connect(pssh_session_t *sess, struct pssh_sess_entry **e, int timeout) 
         if ((err_cnt + ok_cnt) == tot_cnt) {
             sess->last_connect = 0;
             sess->is_timeout = 0;
-            evdns_shutdown(0);
             if (err_cnt != 0)
                 ret = PSSH_FAILED;
             else
@@ -442,7 +441,7 @@ int pssh_connect(pssh_session_t *sess, struct pssh_sess_entry **e, int timeout) 
             break;
         }
 
-        event_loop(EVLOOP_ONCE);
+        event_base_loop(sess->ev_base, EVLOOP_ONCE);
 
     }
     return ret;
@@ -539,7 +538,6 @@ void pssh_free(pssh_session_t *s) /* {{{ */
     free(s->password);
     free(s->timeout_event);
 
-    /* evdns_shutdown(0); */
     event_base_free(s->ev_base);
     free(s);
 }
