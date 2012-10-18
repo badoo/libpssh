@@ -86,6 +86,7 @@ static int pssh_task_event_update(struct pssh_task_t *t, int flags, int timeout)
         tv.tv_sec = timeout;
         tv.tv_usec = 0;
         event_set(t->sess_entry->ev, t->sess_entry->sock, flags, pssh_task_event_handler, t);
+        event_base_set(t->sess_entry->self_sess->ev_base, t->sess_entry->ev);
         t->sess_entry->ev_up = 1;
         return event_add(t->sess_entry->ev, &tv);
     }
@@ -738,7 +739,7 @@ int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t, int timeout) /* {{{ 
             break;
         }
 
-        event_loop(EVLOOP_ONCE);
+        event_base_loop(tl->sess->ev_base, EVLOOP_ONCE);
     }
 
     return ret;
