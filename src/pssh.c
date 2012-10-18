@@ -538,6 +538,7 @@ void pssh_free(pssh_session_t *s) /* {{{ */
     free(s->password);
     free(s->timeout_event);
 
+    evdns_base_free(s->evdns_base, 0);
     event_base_free(s->ev_base);
     free(s);
 }
