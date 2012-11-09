@@ -9,11 +9,11 @@
 #include <unistd.h>
 
 static const char *conn_ret_str[] = {
-    "PSSH_CONNECTED",
-    "PSSH_RUNNING",
-    "PSSH_TIMEOUT",
-    "PSSH_FAILED",
-    "PSSH_SUCCESS"
+	"PSSH_CONNECTED",
+	"PSSH_RUNNING",
+	"PSSH_TIMEOUT",
+	"PSSH_FAILED",
+	"PSSH_SUCCESS"
 };
 
 int main(int argc, char *argv[])
@@ -46,20 +46,20 @@ int main(int argc, char *argv[])
 		ret = pssh_connect(pssh, &ent, timeout);
 	} while (ret == PSSH_CONNECTED);
 
-        task_list = pssh_task_list_init(pssh);
-        assert(task_list != NULL);
+	task_list = pssh_task_list_init(pssh);
+	assert(task_list != NULL);
 
 	pssh_add_cmd(task_list, hostname, cmd, timeout);
-	
-        i = 0;
-        do {
-            i++;
-            ret = pssh_exec(task_list, &task);
-            printf("time: %ld, ret = %s for %s\n", time(0), conn_ret_str[ret], pssh_task_server_name(task));
-        } while (ret == PSSH_RUNNING);
 
-        printf("ret = %s\n", conn_ret_str[ret]);
-        printf("i = %d\n", i);
+	i = 0;
+	do {
+		i++;
+		ret = pssh_exec(task_list, &task);
+		printf("time: %ld, ret = %s for %s\n", time(0), conn_ret_str[ret], pssh_task_server_name(task));
+	} while (ret == PSSH_RUNNING);
+
+	printf("ret = %s\n", conn_ret_str[ret]);
+	printf("i = %d\n", i);
 
 	printf("stdout: [%s]\n", pssh_task_stdout(pssh_task_first(task_list)));
 	printf("stderr: [%s]\n", pssh_task_stderr(pssh_task_first(task_list)));

@@ -63,123 +63,123 @@
 #endif
 
 typedef enum {
-    PSSH_STAT_ERROR,
-    PSSH_STAT_NONE,
-    PSSH_STAT_WAIT_RESOLVE,
-    PSSH_STAT_RESOLVED,
-    PSSH_STAT_WAIT_CONN,
-    PSSH_STAT_DONE_CONN,
-    PSSH_STAT_WAIT_SESS,
-    PSSH_STAT_WAIT_AUTH,
-    PSSH_STAT_CONNECTED
+	PSSH_STAT_ERROR,
+	PSSH_STAT_NONE,
+	PSSH_STAT_WAIT_RESOLVE,
+	PSSH_STAT_RESOLVED,
+	PSSH_STAT_WAIT_CONN,
+	PSSH_STAT_DONE_CONN,
+	PSSH_STAT_WAIT_SESS,
+	PSSH_STAT_WAIT_AUTH,
+	PSSH_STAT_CONNECTED
 } pssh_int_stat_t;
 
 TAILQ_HEAD(pssh_sessions_t, pssh_sess_entry);
 
 struct pssh_sess_entry {
-    char                   hostaddr_str[PSSH_HOSTADDR_LEN];
-    int                    hostaddr;
-    int                    port;
-    int                    sock;
-    int                    is_reported;
-    pssh_int_stat_t        stat;
-    LIBSSH2_SESSION       *ssh_sess;
-    int                    ssh_sess_started;
-    char                   ev_up;
-    struct event          *ev;
-    short                  ev_type;
-    struct pssh_session_t *self_sess;
-    TAILQ_ENTRY(pssh_sess_entry) entries;
+	char hostaddr_str[PSSH_HOSTADDR_LEN];
+	int hostaddr;
+	int port;
+	int sock;
+	int is_reported;
+	pssh_int_stat_t stat;
+	LIBSSH2_SESSION *ssh_sess;
+	int ssh_sess_started;
+	char ev_up;
+	struct event *ev;
+	short ev_type;
+	struct pssh_session_t *self_sess;
+	 TAILQ_ENTRY(pssh_sess_entry) entries;
 };
 
 struct pssh_session_t {
-    char                   *username;
-    char                   *public_key;
-    char                   *priv_key;
-    char                   *password;
-    int                     timeout;
-    struct event           *timeout_event;
-    int                     is_timeout;
-    time_t                  last_connect;
-    struct pssh_sessions_t *sessions;
-    struct pssh_sess_entry *pssh_curr_server;
-    struct event_base      *ev_base;
-    struct evdns_base      *evdns_base;
-    int                     opts;
+	char *username;
+	char *public_key;
+	char *priv_key;
+	char *password;
+	int timeout;
+	struct event *timeout_event;
+	int is_timeout;
+	time_t last_connect;
+	struct pssh_sessions_t *sessions;
+	struct pssh_sess_entry *pssh_curr_server;
+	struct event_base *ev_base;
+	struct evdns_base *evdns_base;
+	int opts;
 };
 
 /*
  * Task's structures.
  */
 typedef enum {
-    PSSH_TASK_STAT_NONE,
-    PSSH_TASK_STAT_ERROR,
-    PSSH_TASK_STAT_START,
-    PSSH_TASK_STAT_CHANNEL_READY,
-    PSSH_TASK_STAT_DATA_TRANSFER,
-    PSSH_TASK_STAT_CMD_RUNNING,
-    PSSH_TASK_STAT_STREAMS_READED,
-    PSSH_TASK_STAT_DONE
+	PSSH_TASK_STAT_NONE,
+	PSSH_TASK_STAT_ERROR,
+	PSSH_TASK_STAT_START,
+	PSSH_TASK_STAT_CHANNEL_READY,
+	PSSH_TASK_STAT_DATA_TRANSFER,
+	PSSH_TASK_STAT_CMD_RUNNING,
+	PSSH_TASK_STAT_STREAMS_READED,
+	PSSH_TASK_STAT_DONE
 } pssh_task_int_stat_t;
 
 typedef enum {
-    PSSH_CD_TO_SERV,
-    PSSH_CD_FROM_SERV
+	PSSH_CD_TO_SERV,
+	PSSH_CD_FROM_SERV
 } pssh_copy_direction_t;
 
 typedef struct {
-    pssh_copy_direction_t  dir;
-    char                   l_fn[MAXPATHLEN+1]; /* local file name */
-    char                   r_fn[MAXPATHLEN+1]; /* remote file name */
-    char                  *data; /* file content */
-    int                    tcnt; /* amount transferred data */
-    struct stat            st;  /* file info */
+	pssh_copy_direction_t dir;
+	char l_fn[MAXPATHLEN + 1];	/* local file name */
+	char r_fn[MAXPATHLEN + 1];	/* remote file name */
+	char *data;		/* file content */
+	int tcnt;		/* amount transferred data */
+	struct stat st;		/* file info */
 } pssh_copy_task_t;
 
 typedef struct {
-    char *data;
-    int   alloc;
-    int   len;
-    int   eof;
+	char *data;
+	int alloc;
+	int len;
+	int eof;
 } pssh_exec_stream_t;
 
 typedef struct {
-    char  cmd[MAXPATHLEN+1];
-    pssh_exec_stream_t out_stream;
-    pssh_exec_stream_t err_stream;
-    int   ret_code;
+	char cmd[MAXPATHLEN + 1];
+	pssh_exec_stream_t out_stream;
+	pssh_exec_stream_t err_stream;
+	int ret_code;
 } pssh_exec_task_t;
 
 TAILQ_HEAD(pssh_tasks_t, pssh_task_t);
 struct pssh_task_t {
-    char                    hostname[PSSH_HOSTADDR_LEN];
-    int                     is_reported;
-    struct pssh_sess_entry *sess_entry;
-    pssh_task_type_t        type;
-    pssh_task_int_stat_t    stat;
-    LIBSSH2_CHANNEL        *channel;
-    /* struct event           *ev; */
-    /* char                    ev_up; */
-    /* short                   ev_type; */
-    union {
-        pssh_copy_task_t    cp;
-        pssh_exec_task_t    ex;
-    } task;
+	char hostname[PSSH_HOSTADDR_LEN];
+	int is_reported;
+	struct pssh_sess_entry *sess_entry;
+	pssh_task_type_t type;
+	pssh_task_int_stat_t stat;
+	LIBSSH2_CHANNEL *channel;
+	/* struct event           *ev; */
+	/* char                    ev_up; */
+	/* short                   ev_type; */
+	union {
+		pssh_copy_task_t cp;
+		pssh_exec_task_t ex;
+	} task;
 	struct timeval timeout;
-    /* For sequence of task. Not yet ready. */
-    TAILQ_ENTRY(pssh_task_t) next_task;
-    TAILQ_ENTRY(pssh_task_t) entries;
+	/* For sequence of task. Not yet ready. */
+	 TAILQ_ENTRY(pssh_task_t) next_task;
+	 TAILQ_ENTRY(pssh_task_t) entries;
 };
 
 struct pssh_task_list_t {
-    struct pssh_session_t *sess;
-    struct pssh_task_t *curr_task;      /* Pointer for pssh_task_first etc... */
-    /* Counters for timeouts. */
-    int done_cnt;
-    int err_cnt;
-    int skip_cnt;
-    time_t stamp;
-    struct pssh_tasks_t *tasks;
+	struct pssh_session_t *sess;
+	struct pssh_task_t *curr_task;	/* Pointer for pssh_task_first etc... */
+	/* Counters for timeouts. */
+	int done_cnt;
+	int err_cnt;
+	int skip_cnt;
+	time_t stamp;
+	struct pssh_tasks_t *tasks;
 };
 
 #endif
