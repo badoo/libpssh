@@ -165,6 +165,7 @@ struct pssh_task_t {
         pssh_copy_task_t    cp;
         pssh_exec_task_t    ex;
     } task;
+	struct timeval timeout;
     /* For sequence of task. Not yet ready. */
     TAILQ_ENTRY(pssh_task_t) next_task;
     TAILQ_ENTRY(pssh_task_t) entries;

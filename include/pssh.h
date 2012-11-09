@@ -90,11 +90,11 @@ typedef enum {
 
 pssh_task_list_t *pssh_task_list_init(pssh_session_t *sess);
 /* like scp l_fn srv:r_fn */
-int pssh_cp_to_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn);
+int pssh_cp_to_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn, int timeout_sec);
 /* like scp srv:r_fn l_fn */
-int pssh_cp_from_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn);
+int pssh_cp_from_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn, int timeout_sec);
 /* like ssh -T srv cmd */
-int pssh_add_cmd(pssh_task_list_t *tl, const char *srv, const char *cmd);
+int pssh_add_cmd(pssh_task_list_t *tl, const char *srv, const char *cmd, int timeout_sec);
 
 /* Walk tasks. */
 struct pssh_task_t *pssh_task_first(pssh_task_list_t *tl);
@@ -112,7 +112,7 @@ pssh_task_type_t  pssh_task_type(struct pssh_task_t *task);
 char             *pssh_task_get_cmd(struct pssh_task_t *task);
 
 /* start execute */
-int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t, int timeout);
+int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t);
 
 /* Cleanup */
 void pssh_task_list_free(pssh_task_list_t *tl);

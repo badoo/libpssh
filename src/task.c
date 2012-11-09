@@ -78,23 +78,33 @@ pssh_task_list_t *pssh_task_list_init(pssh_session_t *sess) /* {{{ */
 }
 /* }}} */
 
-static int pssh_task_event_update(struct pssh_task_t *t, int flags, int timeout) /* {{{ */
+static int pssh_task_event_update(struct pssh_task_t *t, int flags) /* {{{ */
 {
-    struct timeval tv;
+    /* struct timeval tv; */
+    int res;
+
+    pssh_printf("%s: flags %d ev_up %d\n", __func__, flags, t->sess_entry->ev_up);
 
     if (t->sess_entry->ev_up == 0) {
-        tv.tv_sec = timeout;
-        tv.tv_usec = 0;
-        event_set(t->sess_entry->ev, t->sess_entry->sock, flags, pssh_task_event_handler, t);
-        event_base_set(t->sess_entry->self_sess->ev_base, t->sess_entry->ev);
-        t->sess_entry->ev_up = 1;
-        return event_add(t->sess_entry->ev, &tv);
+	    /* tv.tv_sec = 10; */
+	    /* tv.tv_usec = 0; */
+	    event_set(t->sess_entry->ev, t->sess_entry->sock, flags, pssh_task_event_handler, t);
+	    res = event_base_set(t->sess_entry->self_sess->ev_base, t->sess_entry->ev);
+	    t->sess_entry->ev_up = 1;
+            /* res = event_add(t->sess_entry->ev, &tv); */
+	    if (t->timeout.tv_sec > 0) {
+		    res = event_add(t->sess_entry->ev, &t->timeout);
+	    } else {
+		    res = event_add(t->sess_entry->ev, NULL);
+	    }
+	    pssh_printf("%s: event_add return %d\n", __func__, res);
+	    return res;
     }
     return 0;
 }
 /* }}} */
 
-static int pssh_task_eagain_handle(struct pssh_task_t *t, int timeout) /* {{{ */
+static int pssh_task_eagain_handle(struct pssh_task_t *t) /* {{{ */
 {
     int flag;
     if (libssh2_session_last_io(t->sess_entry->ssh_sess) == LIBSSH2_LAST_IO_SEND) {
@@ -102,12 +112,12 @@ static int pssh_task_eagain_handle(struct pssh_task_t *t, int timeout) /* {{{ */
     } else {
         flag = EV_READ;
     }
-    return pssh_task_event_update(t, flag, timeout);
+    return pssh_task_event_update(t, flag);
 }
 /* }}} */
 
 /* Initialize common fields for cp & exec task. */
-static struct pssh_task_t *pssh_init_common_task(pssh_session_t *sess, const char *srv, pssh_task_type_t type) /* {{{ */
+static struct pssh_task_t *pssh_init_common_task(pssh_session_t *sess, const char *srv, pssh_task_type_t type, int timeout_sec) /* {{{ */
 {
     struct pssh_task_t *t = xmalloc(sizeof(struct pssh_task_t));
 
@@ -119,6 +129,8 @@ static struct pssh_task_t *pssh_init_common_task(pssh_session_t *sess, const cha
     t->is_reported = 0;
     t->sess_entry = pssh_find_ent(sess, srv);
     t->channel = NULL;
+	t->timeout.tv_sec = (timeout_sec > 0) ? timeout_sec : 0;
+	t->timeout.tv_usec = 0;
     return t;
 }
 /* }}} */
@@ -131,7 +143,7 @@ static int check_zero_str(const char *s) /* {{{ */
 }
 /* }}} */
 
-static int pssh_add_cp_task(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn, pssh_copy_direction_t dir) /* {{{ */
+static int pssh_add_cp_task(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn, pssh_copy_direction_t dir, int timeout_sec) /* {{{ */
 {
     struct pssh_task_t *t;
 
@@ -143,7 +155,7 @@ static int pssh_add_cp_task(pssh_task_list_t *tl, const char *srv, const char *l
         (check_zero_str(r_fn) == -1))
         return -1;
 
-    t = pssh_init_common_task(tl->sess, srv, PSSH_TASK_TYPE_COPY);
+    t = pssh_init_common_task(tl->sess, srv, PSSH_TASK_TYPE_COPY, timeout_sec);
     memset(&t->task.cp, 0, sizeof(t->task.cp));
     t->task.cp.dir = dir;
     strcpy(t->task.cp.l_fn, l_fn);
@@ -154,19 +166,19 @@ static int pssh_add_cp_task(pssh_task_list_t *tl, const char *srv, const char *l
 }
 /* }}} */
 
-int pssh_cp_to_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn) /* {{{ */
+int pssh_cp_to_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn, int timeout_sec) /* {{{ */
 {
-    return pssh_add_cp_task(tl, srv, l_fn, r_fn, PSSH_CD_TO_SERV);
+    return pssh_add_cp_task(tl, srv, l_fn, r_fn, PSSH_CD_TO_SERV, timeout_sec);
 }
 /* }}} */
 
-int pssh_cp_from_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn) /* {{{ */
+int pssh_cp_from_server(pssh_task_list_t *tl, const char *srv, const char *l_fn, const char *r_fn, int timeout_sec) /* {{{ */
 {
-    return pssh_add_cp_task(tl, srv, l_fn, r_fn, PSSH_CD_FROM_SERV);
+    return pssh_add_cp_task(tl, srv, l_fn, r_fn, PSSH_CD_FROM_SERV, timeout_sec);
 }
 /* }}} */
 
-int pssh_add_cmd(pssh_task_list_t *tl, const char *srv, const char *cmd) /* {{{ */
+int pssh_add_cmd(pssh_task_list_t *tl, const char *srv, const char *cmd, int timeout_sec) /* {{{ */
 {
     struct pssh_task_t *t;
 
@@ -176,7 +188,7 @@ int pssh_add_cmd(pssh_task_list_t *tl, const char *srv, const char *cmd) /* {{{ 
         (check_zero_str(cmd) == -1))
         return -1;
 
-    t = pssh_init_common_task(tl->sess, srv, PSSH_TASK_TYPE_EXEC);
+    t = pssh_init_common_task(tl->sess, srv, PSSH_TASK_TYPE_EXEC, timeout_sec);
     memset(&t->task.ex, 0, sizeof(pssh_exec_task_t));
     strcpy(t->task.ex.cmd, cmd);
     TAILQ_INSERT_TAIL(tl->tasks, t, entries);
@@ -471,6 +483,7 @@ static int pssh_task_read_stream(struct pssh_task_t *task, pssh_exec_stream_t *s
     }
 
     ret = libssh2_channel_read_ex(task->channel, stream_id, s->data + s->len, s->alloc - s->len);
+    pssh_printf("%s: read_ex return %d for channel %d\n", __func__, ret, stream_id);
     if (ret < 0) {
         if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
             pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
@@ -479,13 +492,14 @@ static int pssh_task_read_stream(struct pssh_task_t *task, pssh_exec_stream_t *s
         }
     } else if (ret == 0) {
             s->eof = 1;
+	    pssh_printf("%s: read all in stream %d\n", __func__, stream_id);
     } else {
-        s->len += ret;
-/*         pssh_printf("%s: all %d len %d ret %d\n", task->hostname, s->alloc, s->len, ret); */
-        if (s->len == s->alloc) {
-            s->data = xrealloc(s->data, s->alloc + PSSH_EXEC_ALLOC_SIZE);
-            s->alloc += PSSH_EXEC_ALLOC_SIZE;
-        }
+	    s->len += ret;
+	    pssh_printf("%s: all %d len %d ret %d\n", task->hostname, s->alloc, s->len, ret);
+	    if (s->len == s->alloc) {
+		    s->data = xrealloc(s->data, s->alloc + PSSH_EXEC_ALLOC_SIZE);
+		    s->alloc += PSSH_EXEC_ALLOC_SIZE;
+	    }
     }
     return ret;
 }
@@ -497,16 +511,16 @@ static int pssh_task_read_stdout(struct pssh_task_t *task) /* {{{ */
     int ret = pssh_task_read_stream(task, &ex->out_stream, 0);
     switch(ret) {
     case -1:
-        if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
             pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
-            task->stat = PSSH_TASK_STAT_ERROR;
-            ret = 0;
-        } else {
-            ret = PSSH_EAGAIN;
-        }
-        break;
+	    if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
+		    task->stat = PSSH_TASK_STAT_ERROR;
+		    ret = 0;
+	    } else {
+		    ret = PSSH_EAGAIN;
+	    }
+	    break;
     case 0:
-        break;
+	    break;
     }
     return ret;
 }
@@ -518,17 +532,17 @@ static int pssh_task_read_stderr(struct pssh_task_t *task) /* {{{ */
     int ret = pssh_task_read_stream(task, &ex->err_stream, SSH_EXTENDED_DATA_STDERR);
     switch(ret) {
     case -1:
-        if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
             pssh_printf("%s: last_errno: %d\n", __func__, libssh2_session_last_errno(task->sess_entry->ssh_sess));
-            task->stat = PSSH_TASK_STAT_ERROR;
-            ret = 0;
-        } else {
-            ret = PSSH_EAGAIN;
-        }
-        break;
+	    if (libssh2_session_last_errno(task->sess_entry->ssh_sess) != LIBSSH2_ERROR_EAGAIN) {
+		    task->stat = PSSH_TASK_STAT_ERROR;
+		    ret = 0;
+	    } else {
+		    ret = PSSH_EAGAIN;
+	    }
+	    break;
     case 0:
-        ret = 0;
-        break;
+	    ret = 0;
+	    break;
     }
     return ret;
 }
@@ -557,63 +571,65 @@ static int pssh_task_run_exec_task(struct pssh_task_t *task) /* {{{ */
     switch (task->stat) {
     case PSSH_TASK_STAT_START:
         /* Init state. Try get channel. */
-/*         pssh_printf("%s: PSSH_TASK_STAT_NONE\n", task->hostname); */
+        pssh_printf("%s: PSSH_TASK_STAT_NONE\n", task->hostname);
         ret = pssh_task_get_exec_channel(task);
         break;
     case PSSH_TASK_STAT_CHANNEL_READY:
         /* Channel ready. Try exec cmd. */
-/*         pssh_printf("%s: PSSH_TASK_STAT_CHANNEL_READY\n", task->hostname); */
+        pssh_printf("%s: PSSH_TASK_STAT_CHANNEL_READY\n", task->hostname);
         ret = pssh_task_do_cmd(task);
         break;
     case PSSH_TASK_STAT_CMD_RUNNING:
     {
-        /* Cmd running on remote host. Getting stdout & stderr. */
-        int eof_err, eof_out;
-        int ret_err, ret_out;
+        /* Cmd running on remote host. Getting stdout. */
+	    int eof_err, eof_out;
+	    int ret_err, ret_out;
 
-/*         pssh_printf("%s: PSSH_TASK_STAT_CMD_RUNNING\n", task->hostname); */
+	    pssh_printf("%s: PSSH_TASK_STAT_CMD_RUNNING\n", task->hostname);
 
-        for (;;) {
-            ret_err = ret_out = 0;
-            eof_err = task->task.ex.err_stream.eof;
-            eof_out = task->task.ex.out_stream.eof;
-            if (!eof_err)
-                ret_err = pssh_task_read_stderr(task);
-            if (!eof_out)
-                ret_out = pssh_task_read_stdout(task);
+	    for (;;) {
+		    ret_err = ret_out = 0;
+		    eof_err = task->task.ex.err_stream.eof;
+		    eof_out = task->task.ex.out_stream.eof;
+		    if (!eof_err)
+		    	    ret_err = pssh_task_read_stderr(task);
+		    if (!eof_out)
+			    ret_out = pssh_task_read_stdout(task);
+		    
+		    pssh_printf("%s: %s: eof_out %d, eof_err %d, ret_out %d, ret_err %d\n",
+			    __func__, task->hostname, eof_out, eof_err, ret_out, ret_err);
+		    
+		    pssh_printf("%s: libssh2_exit_status %d\n", __func__, libssh2_channel_get_exit_status(task->channel));
+		    if ((ret_out == 0) && (ret_err == 0)) {
+			    task->stat = PSSH_TASK_STAT_STREAMS_READED;
+			    pssh_task_cleanup_exec(task);
+			    ret = 0;
+			    break;
+		    }
+		    if ((ret_err == PSSH_EAGAIN) && (ret_out == PSSH_EAGAIN)) {
+			    ret = PSSH_EAGAIN;
+			    break;
+		    }
 
-/*             pssh_printf("%s: %s: eof_out %d, eof_err %d, ret_out %d, ret_err %d\n", */
-/*                    __func__, task->hostname, eof_out, eof_err, ret_out, ret_err); */
-
-            if ((ret_out == 0) && (ret_err == 0)) {
-                task->stat = PSSH_TASK_STAT_STREAMS_READED;
-                pssh_task_cleanup_exec(task);
-                ret = 0;
-                break;
-            }
-            if ((ret_err == PSSH_EAGAIN) || (ret_out == PSSH_EAGAIN)) {
-                ret = PSSH_EAGAIN;
-                break;
-            }
-        }
-        break;
+	    }
+	    break;
     }
     case PSSH_TASK_STAT_STREAMS_READED:
         /* stdout readed. Getting stderr. */
-/*         pssh_printf("%s: PSSH_TASK_STAT_STDOUT_READED\n", task->hostname); */
+        pssh_printf("%s: PSSH_TASK_STAT_STDOUT_READED\n", task->hostname);
         ret = pssh_task_cleanup_exec(task);
         break;
     case PSSH_TASK_STAT_ERROR:
-/*         pssh_printf("%s: PSSH_TASK_STAT_ERROR\n", task->hostname); */
+        pssh_printf("%s: PSSH_TASK_STAT_ERROR\n", task->hostname);
         ret = 0;
         break;
     case PSSH_TASK_STAT_DONE:
         /* Nothing more */
-/*         pssh_printf("%s: PSSH_TASK_STAT_DONE\n", task->hostname); */
+        pssh_printf("%s: PSSH_TASK_STAT_DONE\n", task->hostname);
         ret = 0;
         break;
     default:
-/*         pssh_printf("task->stat %d\n", task->stat); */
+        pssh_printf("task->stat %d\n", task->stat);
         abort();
     }
     return ret;
@@ -623,7 +639,6 @@ static int pssh_task_run_exec_task(struct pssh_task_t *task) /* {{{ */
 static void pssh_task_fsm(struct pssh_task_t *t) /* {{{ */
 {
     int ret = -1;
-    int timeout = 100;
 
     switch (t->type) {
     case PSSH_TASK_TYPE_COPY:
@@ -642,15 +657,18 @@ static void pssh_task_fsm(struct pssh_task_t *t) /* {{{ */
 
     switch (ret) {
     case PSSH_EAGAIN:
-        if (t->stat == PSSH_TASK_STAT_CMD_RUNNING)
-            ret = pssh_task_event_update(t, EV_WRITE|EV_READ, timeout);
-        else
-            ret = pssh_task_eagain_handle(t, timeout);
+	    if (t->stat == PSSH_TASK_STAT_CMD_RUNNING) {
+		    /* int flags = libssh2_session_last_io(t->sess_entry->ssh_sess) == LIBSSH2_LAST_IO_RECV ? EV_READ : EV_WRITE; */
+		    int flags = EV_READ;
+		    pssh_printf("%s: call pssh_task_event_update (EAGAIN)\n", __func__);
+		    ret = pssh_task_event_update(t, flags);
+	    } else
+		    ret = pssh_task_eagain_handle(t);
         break;
     case 0:
         if (t->stat != PSSH_TASK_STAT_DONE &&
             t->stat != PSSH_TASK_STAT_ERROR) {
-            ret = pssh_task_event_update(t, EV_WRITE, timeout);
+            ret = pssh_task_event_update(t, EV_WRITE);
             if (ret != 0) {
                 pssh_printf("%s: can't update event for %s\n",
                             __func__, t->hostname);
@@ -667,21 +685,39 @@ static void pssh_task_fsm(struct pssh_task_t *t) /* {{{ */
 }
 /* }}} */
 
+static int pssh_is_cmd_task(struct pssh_task_t *task) /* {{{ */
+{
+    if (task && (task->type == PSSH_TASK_TYPE_EXEC))
+        return 1;
+    else
+        return 0;
+}
+/* }}} */
+
 static void pssh_task_event_handler(int fd, short type, void *arg) /* {{{ */
 {
-    struct pssh_task_t *t = (struct pssh_task_t *)arg;
-    assert(t != NULL);
-    /* pssh_printf("%s\n", __func__); */
-    t->sess_entry->ev_type = type;
-    t->sess_entry->ev_up = 0;
+	struct pssh_task_t *t = (struct pssh_task_t *)arg;
+	assert(t != NULL);
+	t->sess_entry->ev_type = type;
+	t->sess_entry->ev_up = 0;
 
-    pssh_task_fsm(t);
-    (void) fd;
+	pssh_printf("%s: fd %d, type %d, stat: %d\n", __func__, fd, type, t->stat);
+
+	if (type == EV_TIMEOUT) {
+		t->stat = PSSH_TASK_STAT_ERROR;
+		if (pssh_is_cmd_task(t)) {
+			t->task.ex.ret_code = 1;
+		}
+	/* } else if (t->stat == PSSH_TASK_STAT_CMD_RUNNING && type == EV_WRITE) { */
+		/* ignore */
+	} else {
+		pssh_task_fsm(t);
+	}
     return;
 }
 /* }}} */
 
-int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t, int timeout) /* {{{ */
+int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t) /* {{{ */
 {
     int ret;
     struct pssh_task_t *task;
@@ -699,7 +735,7 @@ int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t, int timeout) /* {{{ 
             }
 
             if ((task->stat == PSSH_TASK_STAT_NONE) || (task->stat == PSSH_TASK_STAT_START)) {
-                ret = pssh_task_event_update(task, EV_WRITE, timeout);
+                ret = pssh_task_event_update(task, EV_WRITE);
                 assert(ret == 0);
                 task->stat = PSSH_TASK_STAT_START;
                 continue;
@@ -739,6 +775,7 @@ int pssh_exec(pssh_task_list_t *tl, struct pssh_task_t **t, int timeout) /* {{{ 
             break;
         }
 
+	pssh_printf("%s: event_base_loop\n", __func__);
         event_base_loop(tl->sess->ev_base, EVLOOP_ONCE);
     }
 
@@ -797,15 +834,6 @@ pssh_task_stat_t pssh_task_stat(struct pssh_task_t *task) /* {{{ */
         break;
     }
     return st;
-}
-/* }}} */
-
-static int pssh_is_cmd_task(struct pssh_task_t *task) /* {{{ */
-{
-    if (task && (task->type == PSSH_TASK_TYPE_EXEC))
-        return 1;
-    else
-        return 0;
 }
 /* }}} */
 

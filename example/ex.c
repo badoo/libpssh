@@ -101,15 +101,15 @@ int main(int argc, char *argv[])
         assert(task_list != NULL);
 
         /* Err */
-        ret = pssh_cp_to_server(task_list, "", "a", "b");
+        ret = pssh_cp_to_server(task_list, "", "a", "b", TIMEOUT);
         assert(ret == -1);
-        ret = pssh_cp_to_server(task_list, "s", "", "b");
+        ret = pssh_cp_to_server(task_list, "s", "", "b", TIMEOUT);
         assert(ret == -1);
-        ret = pssh_cp_to_server(task_list, "s", "a", "");
+        ret = pssh_cp_to_server(task_list, "s", "a", "", TIMEOUT);
         assert(ret == -1);
-        ret = pssh_add_cmd(task_list, "", "c");
+        ret = pssh_add_cmd(task_list, "", "c", TIMEOUT);
         assert(ret == -1);
-        ret = pssh_add_cmd(task_list, "s", "");
+        ret = pssh_add_cmd(task_list, "s", "", TIMEOUT);
         assert(ret == -1);
         
 
@@ -125,12 +125,12 @@ int main(int argc, char *argv[])
 #else
             
             if ((i == 2) || (i == 4)) {
-                pssh_cp_to_server(task_list, name, "/etc", "/tmp/profile");
+                pssh_cp_to_server(task_list, name, "/etc", "/tmp/profile", TIMEOUT);
             } else {
-                pssh_cp_to_server(task_list, name, "/etc", "/tmp/profile");
-                pssh_cp_to_server(task_list, name, "/etc/profile", "/tmp/profile");
-                pssh_cp_to_server(task_list, name, "/etc/passwd", "/tmp/passwd");
-                pssh_cp_to_server(task_list, name, "/etc/hosts", "/tmp/hosts");
+                pssh_cp_to_server(task_list, name, "/etc", "/tmp/profile", TIMEOUT);
+                pssh_cp_to_server(task_list, name, "/etc/profile", "/tmp/profile", TIMEOUT);
+                pssh_cp_to_server(task_list, name, "/etc/passwd", "/tmp/passwd", TIMEOUT);
+                pssh_cp_to_server(task_list, name, "/etc/hosts", "/tmp/hosts", TIMEOUT);
             }
 /*         pssh_add_cmd(task_list, name, "cat /tmp/profile"); */
 #endif
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
         i = 0;
         do {
             i++;
-            ret = pssh_exec(task_list, &task, TIMEOUT);
+            ret = pssh_exec(task_list, &task);
             printf("time: %ld, ret = %s for %s\n", time(0), conn_ret_str[ret], pssh_task_server_name(task));
         } while (ret == PSSH_RUNNING);
 
@@ -344,7 +344,7 @@ pssh_cp_to_server(task_list, "www110", "/etc/mime.types", "/tmp/mime.types");
     i = 0;
     do {
         i++;
-        ret = pssh_exec(task_list, &task, TIMEOUT);
+        ret = pssh_exec(task_list, &task);
         printf("time: %ld, ret = %s for %s <%s>\n", time(0), conn_ret_str[ret], pssh_task_server_name(task), pssh_task_get_cmd(task));
     } while (ret == PSSH_RUNNING);
     
