@@ -57,6 +57,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 /* static struct pssh_sess_entry *pssh_curr_server; */
 /* Event handling. */
@@ -73,11 +74,13 @@ static void logfn(int is_warn, const char *msg)
 }
 #endif
 
+#define PSSH_HOST_ADDR_MAX_SIZE 256
+
 static void pssh_dns_cb(int result, char type, int count, int ttl, void *addr, void *arg)
 {				/* {{{ */
 	struct pssh_sess_entry *ent = (struct pssh_sess_entry *)arg;
 	int *iaddr = (int *)addr;
-	char addr_str[100];
+	char addr_str[PSSH_HOST_ADDR_MAX_SIZE];
 
 	if (result == DNS_ERR_NONE) {
 		inet_ntop(AF_INET, addr, addr_str, sizeof(addr_str));
@@ -88,9 +91,30 @@ static void pssh_dns_cb(int result, char type, int count, int ttl, void *addr, v
 		ent->ev_up = 0;
 		pssh_fsm(ent);
 	} else {
-		pssh_printf("%s: %s: %s(%d)!\n", __func__, ent->hostaddr_str, evdns_err_to_string(result), result);
-		ent->stat = PSSH_STAT_ERROR;
-		ent->hostaddr = -1;
+		struct in_addr ip;
+		char ipa[PSSH_HOST_ADDR_MAX_SIZE];
+
+		bzero(ipa, sizeof(ipa));
+		if (strnlen(ent->hostaddr_str, PSSH_HOST_ADDR_MAX_SIZE) == PSSH_HOST_ADDR_MAX_SIZE) {
+			pssh_printf("%s: %s: %s(%d)!\n", __func__, ent->hostaddr_str, evdns_err_to_string(result), result);
+			ent->stat = PSSH_STAT_ERROR;
+			ent->hostaddr = -1;
+		} else {
+			memcpy(ipa, ent->hostaddr_str, strnlen(ent->hostaddr_str, PSSH_HOST_ADDR_MAX_SIZE));
+		}
+
+		if (!addr && !inet_aton(ipa, &ip)) {
+			pssh_printf("%s: %s: %s(%d)!\n", __func__, ent->hostaddr_str, evdns_err_to_string(result), result);
+			ent->stat = PSSH_STAT_ERROR;
+			ent->hostaddr = -1;
+		} else {
+			ent->hostaddr = inet_addr(ent->hostaddr_str);
+			ent->stat = PSSH_STAT_RESOLVED;
+
+			/* Resolved, try auth. */
+			ent->ev_up = 0;
+			pssh_fsm(ent);
+		}
 	}
 	(void)type;
 	(void)count;
