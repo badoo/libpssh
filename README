@@ -1,3 +1,8 @@
+!!!
+ATTENTION:
+For install this library you must reanstall libssh2 with iohandle patch. This patches you can find in https://github.com/svagner/freebsd_ports/tree/master/patches/libssh2_iohandle_patch. Fetch it and copy to /usr/ports/security/libssh2/files
+!!!
+
 libpssh handles multiple SSH connections using libevent and libssh2.
 At the moment this library requires libssh2 with custom patches available here: https://github.com/badoo/libssh2
 

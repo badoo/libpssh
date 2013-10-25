@@ -19,3 +19,4 @@ depcomp
 ltmain.sh
 *.tar.gz
 /example/ex1
+compile

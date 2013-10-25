@@ -41,6 +41,7 @@
 #include "debug.h"
 #include "pssh_priv.h"
 #include "xsys.h"
+#include "pssh_priv.h"
 
 #include <sys/queue.h>
 #include <assert.h>
@@ -51,12 +52,14 @@
 #include <string.h>
 #include <time.h>
 
-#include <event.h>
-#include <evdns.h>
+#include <event2/event.h>
+#include <event2/event_struct.h>
+#include <event2/dns.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 /* static struct pssh_sess_entry *pssh_curr_server; */
 /* Event handling. */
@@ -88,9 +91,33 @@ static void pssh_dns_cb(int result, char type, int count, int ttl, void *addr, v
 		ent->ev_up = 0;
 		pssh_fsm(ent);
 	} else {
-		pssh_printf("%s: %s: %s(%d)!\n", __func__, ent->hostaddr_str, evdns_err_to_string(result), result);
-		ent->stat = PSSH_STAT_ERROR;
-		ent->hostaddr = -1;
+		struct in_addr ip;
+		char ipa[100];
+		bzero(ipa, sizeof(ipa));
+		if (strnlen(ent->hostaddr_str, 100)==100)
+		{
+		    pssh_printf("%s: %s: %s(%d)!\n", __func__, ent->hostaddr_str, evdns_err_to_string(result), result);
+		    ent->stat = PSSH_STAT_ERROR;
+		    ent->hostaddr = -1;
+		}
+		else
+		    memcpy(ipa, ent->hostaddr_str, strnlen(ent->hostaddr_str, 100));
+
+		if (!addr && !inet_aton(ipa, &ip))
+		{
+		    pssh_printf("%s: %s: %s(%d)!\n", __func__, ent->hostaddr_str, evdns_err_to_string(result), result);
+		    ent->stat = PSSH_STAT_ERROR;
+		    ent->hostaddr = -1;
+		}
+		else
+		{
+		    ent->hostaddr = inet_addr(ent->hostaddr_str);
+		    ent->stat = PSSH_STAT_RESOLVED;
+
+		    /* Resolved, try auth. */
+		    ent->ev_up = 0;
+		    pssh_fsm(ent);
+		}
 	}
 	(void)type;
 	(void)count;
