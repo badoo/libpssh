@@ -107,13 +107,21 @@ else
         for i in `echo "$STANDARD_PREFIXES"`; do
             if test -f "$i/include/event.h"; then
                 LIBEVENT_DIR="$i"
+                LIBEVENT_INC_DIR="$i/include"
+                break;
+            elif test -f "$i/include/event2/event.h"; then
+                LIBEVENT_DIR="$i"
+                LIBEVENT_INC_DIR="$i/include/event2"
                 break;
             fi
         done
     else
         if test -f "$with_event/include/event.h"; then
             LIBEVENT_DIR="$with_event"
-            break;
+            LIBEVENT_INC_DIR="$with_event/include"
+        elif test -f "$with_event/include/event2/event.h"; then
+            LIBEVENT_DIR="$with_event"
+            LIBEVENT_INC_DIR="$with_event/include/event2"
         else
             AC_MSG_ERROR([Can't find libevent headers under $with_event directory]);
         fi
@@ -133,7 +141,7 @@ else
       [AC_MSG_ERROR([libevent not found. May be older version? Check config.log for more details])]
     )
 
-    CFLAGS="$CFLAGS -I$LIBEVENT_DIR/include"
+    CFLAGS="$CFLAGS -I$LIBEVENT_INC_DIR"
 fi
 dnl }}}
 
